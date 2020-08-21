@@ -13,7 +13,7 @@ Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
-**In-Kind Appeal**: if you find this material contrived, over-engineered, impractical or anti-pattern, your feedback still would be greatly appreciated, please [leave a comment](https://github.com/noseratio/coroutines-talk/issues) 🤓
+**In-Kind Appeal**: You may find this material contrived, over-engineered, impractical or anti-pattern. Or, perhaps, it feels like something trivial and I'm reinventing the wheel here. Either way, your feedback still would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) 🤓
 
 # Pull-based approach to coroutines (`IEnumerable`/`IEnumerator`)
 
@@ -36,7 +36,7 @@ Traditionally, we use `yield return` for synchronously generating sequences of d
 In contrast, with coroutines it's about code rather than data, and we use `yield return` as a tool to break the code into multiple individually executed chunks. 
 
 This is convenient, because we can use all the normal control flow statements (`if`, `for`, `while`, `foreach` etc) where otherwise 
-we would have to use a chain of callbacks. There's a notable limitation though, C# doesn't allow `yield` inside a `try {}` block.
+we would have to use a chain of callbacks. There's a notable limitation though, C# doesn't allow `yield` inside a `try {}` block, which does make sense.
 
 Let's create [our own example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/CoroutineDemo.cs). We want `CoroutineA` and `CoroutineB` to execute cooperatively on the primary UI thread. In real life, they might be drawing animation effects or doing background spellchecking, syntax highlighting, etc. Here, to keep it simple, we'll just be using the console for some visual progress output:  
 
@@ -100,7 +100,6 @@ private static async ValueTask RunCoroutinesAsync(CancellationToken token)
         catch (Exception ex)
         {
             tcs.TrySetException(ex);
-            throw;
         }
     };
 
@@ -283,7 +282,7 @@ public async Task RunAsync(Func<CancellationToken, IAsyncEnumerable<T>> coroutin
 }
 ```
 
-To [run](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineDemoMutual.cs#L74) both coroutines:
+To [run both coroutines](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineDemoMutual.cs#L74):
 
 ```C#
 private static async ValueTask RunCoroutinesAsync(CancellationToken token)
@@ -362,21 +361,21 @@ private static async IAsyncEnumerable<(ForegroundEvents, object)> ForegroundCoro
     await using var backgroundCoroutine =
         await backgroundCoroutineProxy.AsAsyncEnumerator(cts.Token);
 
-    // notify the background couroutine that we're ready
+    // notify the background coroutine that we're ready
     yield return (ForegroundEvents.Ready, DBNull.Value);
 
-    // await for the background couroutine to also be ready
+    // await for the background coroutine to also be ready
     var (foregroundEvent, _) = await backgroundCoroutine.GetNextAsync(cts.Token);
     Assert.IsTrue(foregroundEvent == BackgroundEvents.Ready);
 
-    // await for the background couroutine to have fed some keystrokes
+    // await for the background coroutine to have fed some keystrokes
     (foregroundEvent, _) = await backgroundCoroutine.GetNextAsync(cts.Token);
     Assert.IsTrue(foregroundEvent == BackgroundEvents.TextSent);
 
     // await for idle input
     await InputHelpers.InputYield(delay: INPUT_IDLE_CHECK_INTERVAL, token: cts.Token);
 
-    // notify the background couroutine about the text we've actually received
+    // notify the background coroutine about the text we've actually received
     var text = textBox.Text.Replace(Environment.NewLine, "\n");
     yield return (ForegroundEvents.TextReceived, text);
 }
@@ -403,14 +402,14 @@ private static async IAsyncEnumerable<(BackgroundEvents, object)> BackgroundCoro
 
     await using var foregroundCoroutine = await foregroundCoroutineProxy.AsAsyncEnumerator(token);
 
-    // notify the foreground couroutine that we're ready
+    // notify the foreground coroutine that we're ready
     yield return (BackgroundEvents.Ready, DBNull.Value);
 
-    // await for the foreground couroutine to also be ready
+    // await for the foreground coroutine to also be ready
     var (foregroundEvent, _) = await foregroundCoroutine.GetNextAsync(token);
     Assert.IsTrue(foregroundEvent == ForegroundEvents.Ready);
 
-    // feed some text to the foregroudn window
+    // feed some text to the foreground window
     using var threadInputScope = AttachedThreadInputScope.Create();
     Assert.IsTrue(threadInputScope.IsAttached);
 
@@ -420,10 +419,10 @@ private static async IAsyncEnumerable<(BackgroundEvents, object)> BackgroundCoro
         await KeyboardInput.FeedTextAsync(TEXT_TO_FEED, token);
     }
 
-    // notify the foreground couroutine that we've been fed some text
+    // notify the foreground coroutine that we've been fed some text
     yield return (BackgroundEvents.TextSent, DBNull.Value);
 
-    // await for the foreground couroutine to reply with the text
+    // await for the foreground coroutine to reply with the text
     object text;
     (foregroundEvent, text) = await foregroundCoroutine.GetNextAsync(token);
     Assert.IsTrue(foregroundEvent == ForegroundEvents.TextReceived);
@@ -443,9 +442,9 @@ public async Task Feed_text_to_TextBox_and_verify_it_was_consumed()
     var backgroundCoroutineProxy = new CoroutineProxy<(BackgroundEvents, object)>();
 
     await using var foregroundApartment = new WinFormsApartment();
-    await using var backroundApartment = new WinFormsApartment();
+    await using var backgroundApartment = new WinFormsApartment();
 
-    // start both coroutines, each in on its own WinForms thread
+    // start both coroutine, each in its own WinForms thread
 
     var foregroundTask = foregroundCoroutineProxy.Run(
         foregroundApartment, 
@@ -460,6 +459,10 @@ public async Task Feed_text_to_TextBox_and_verify_it_was_consumed()
     await Task.WhenAll(foregroundTask, backgroundTask).WithAggregatedExceptions();
 }
 ```
+The twisted part about this is that we create `foregroundCoroutineProxy` (for `ForegroundCoroutine`) to 
+be passed to `BackgroundCoroutine`, and `foregroundCoroutineProxy` (for `BackgroundCoroutine`) to be passed to `ForegroundCoroutine`. 
+
+So it looks a bit like mutual asynchronous recursion, besides it isn't. The actual backpressure is created by [`CoroutineProxy.RunAsync`](https://github.com/noseratio/coroutines-talk/blob/c9465c5608e515aecedc045dbd440289b6d282f2/Coroutines/AsyncCoroutineProxy.cs#L34), which drives the execution of each coroutine [by `await foreach` loop](https://github.com/noseratio/coroutines-talk/blob/c9465c5608e515aecedc045dbd440289b6d282f2/Coroutines/AsyncCoroutineProxy.cs#L42).  
 
 Note how `BackgroundCoroutine` and `ForegroundCoroutine` use `yield return` and `await GetNextAsync()` 
 to synchronize upon each other's state as they are progressing. Everything is asynchronous, there is no blocking calls. Both coroutines are executed on two different threads and actually run in parallel.
@@ -467,9 +470,9 @@ In our previous examples, we only dealt with concurrent execution on the same th
 
 ## Conclusion
 
-In my opinion, asynchronous coroutines can be an elegant solution to some niche consumer/producer scenarios, especially when there is no clear role separation between producer and consumer. The same problems can certainly be solved with mature and powerful frameworks like [Reactive Extensions](https://github.com/dotnet/reactive) or [Dataflow](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/dataflow-task-parallel-library). However, the learning curve to use [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8) and [Channels](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) should be really low.
+In my opinion, asynchronous coroutines can be an elegant solution to some niche consumer/producer scenarios, especially when there is no clear role separation between producer and consumer. The same kind of problems can certainly be solved with mature and powerful frameworks like [Reactive Extensions](https://github.com/dotnet/reactive) or [Dataflow](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/dataflow-task-parallel-library). However, the learning curve to use [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8) and [Channels](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) should be really low.
 
 ## PS
 
-One other useful thing I've learnt while working on this talk was how to use the new [`IValueTaskSource`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.sources.ivaluetasksource-1?view=netcore-3.1) interface to implement a source of lightweight [`ValueTask`](https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/) objects. This can help to greatly reduce allocations while awaiting a `ValueTask` on hot asynchronous loops. For some examples, check the source code of [`SimpleValueTaskSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/SimpleValueTaskSource.cs), 
+One other useful thing I've learnt while working on this article was how to use the new [`IValueTaskSource`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.sources.ivaluetasksource-1?view=netcore-3.1) interface to implement a source of lightweight [`ValueTask`](https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/) objects. This can help to greatly reduce allocations while awaiting a `ValueTask` on hot asynchronous loops. For some examples, check the source code of [`SimpleValueTaskSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/SimpleValueTaskSource.cs), 
 [`InputIdler`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) and [`TimerSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/TimerSource.cs) in this repo.
