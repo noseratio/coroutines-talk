@@ -44,6 +44,7 @@ namespace Coroutines
                 await RunCoroutinesAsync(token);
             }
         }
+
         private static async ValueTask RunCoroutinesAsync(CancellationToken token)
         {
             // combine two IEnumerable sequences into one and get an IEnumerator for it
@@ -71,7 +72,6 @@ namespace Coroutines
                 catch (Exception ex)
                 {
                     tcs.TrySetException(ex);
-                    throw;
                 }
             };
 
