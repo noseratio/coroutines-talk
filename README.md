@@ -14,7 +14,7 @@ Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
-**In-Kind Appeal**: You may find this material contrived, over-engineered, impractical or anti-pattern. Or it may feel trivial and I'm reinventing the wheel here. Either way, your feedback still would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) 🤓
+**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio)🤓
 
 ## Pull-based approach to coroutines (`IEnumerable`/`IEnumerator`)
 
