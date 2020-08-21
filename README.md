@@ -1,6 +1,7 @@
-# Introduction
+# Asynchronous coroutines with C# 8.0 and `IAsyncEnumerable`
+## Introduction
 
-Co-routines are functions that yield and execute cooperatively, the concept that has been around for many decades. 
+Coroutines are functions that yield and execute cooperatively, the concept that has been around for many decades. 
 They are handy for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. 
 
 Internally, coroutines use some sort of programming language syntax sugar for generating state machines methods. 
@@ -13,9 +14,9 @@ Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
-**In-Kind Appeal**: You may find this material contrived, over-engineered, impractical or anti-pattern. Or, perhaps, it feels like something trivial and I'm reinventing the wheel here. Either way, your feedback still would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) 🤓
+**In-Kind Appeal**: You may find this material contrived, over-engineered, impractical or anti-pattern. Or it may feel trivial and I'm reinventing the wheel here. Either way, your feedback still would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) 🤓
 
-# Pull-based approach to coroutines (`IEnumerable`/`IEnumerator`)
+## Pull-based approach to coroutines (`IEnumerable`/`IEnumerator`)
 
 This approach has been in use for over a decade, since `yield` was introduced in C# 2.0. Here is how a fade effect can be implemented as an `IEnumerator`-method in a Unity video game (borrowed from their [docs](https://docs.unity3d.com/Manual/Coroutines.html)). The use of `yield return` allows to "spread" the `for` loop across multiple frame generation iterations:
 
@@ -133,7 +134,7 @@ Ideally, we should be using `async`/`await` for awaiting the results of an actua
 
 Prior to C# 8, it wasn't possible to combine the two within the same method, but now we can do that.
 
-# Push-based approach to coroutines (`IAsyncEnumerable`/`IAsyncIEnumerator`)
+## Push-based approach to coroutines (`IAsyncEnumerable`/`IAsyncIEnumerator`)
 
 In 2018, C# 8.0 introduced support for [asynchronous streams](https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/generate-consume-asynchronous-stream) with new language and runtime features like: 
  - [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.iasyncenumerable-1?view=dotnet-plat-ext-3.1)
@@ -148,7 +149,7 @@ In a few words, similar to how `IEnumerable` is used to produce a stream of data
 
 And so by analogy with `IEnumerable`, we can use `IAsyncEnumerable`-methods to implement coroutines with async calls inside.
 
-Before we get to a [real life example](#A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `return yield` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
+Before we get to a [real life example](##A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `return yield` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
 
 ```C#
 private static async IAsyncEnumerable<int> CoroutineA(
@@ -301,7 +302,7 @@ Running it:
 
 ![Running push-based coroutines](running-async-mutual-coroutines.png)
 
-## A real-life scenario
+### A real-life scenario
 
 Using [`CoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), `CoroutineA` and `CoroutineB` can operate as asynchronous producer/consumer to each other, and they can swap these roles. 
 
@@ -468,11 +469,11 @@ Note how `BackgroundCoroutine` and `ForegroundCoroutine` use `yield return` and 
 to synchronize upon each other's state as they are progressing. Everything is asynchronous, there is no blocking calls. Both coroutines are executed on two different threads and actually run in parallel.
 In our previous examples, we only dealt with concurrent execution on the same thread. 
 
-## Conclusion
+### Conclusion
 
 In my opinion, asynchronous coroutines can be an elegant solution to some niche consumer/producer scenarios, especially when there is no clear role separation between producer and consumer. The same kind of problems can certainly be solved with mature and powerful frameworks like [Reactive Extensions](https://github.com/dotnet/reactive) or [Dataflow](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/dataflow-task-parallel-library). However, the learning curve to use [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8) and [Channels](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) should be really low.
 
-## PS
+### PS
 
 One other useful thing I've learnt while working on this article was how to use the new [`IValueTaskSource`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.sources.ivaluetasksource-1?view=netcore-3.1) interface to implement a source of lightweight [`ValueTask`](https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/) objects. This can help to greatly reduce allocations while awaiting a `ValueTask` on hot asynchronous loops. For some examples, check the source code of [`SimpleValueTaskSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/SimpleValueTaskSource.cs), 
 [`InputIdler`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) and [`TimerSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/TimerSource.cs) in this repo.
