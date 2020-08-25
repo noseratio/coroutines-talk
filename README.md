@@ -15,7 +15,7 @@ Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
-**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio) 🤓
+**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio).
 
 ## Pull-based approach to coroutines with `IEnumerable`/`IEnumerator`
 
@@ -37,8 +37,9 @@ IEnumerator Fade()
 Traditionally, we use `yield return` for synchronously generating sequences of data to be further processed with LINQ operators. 
 In contrast, with coroutines it's about code rather than data, and we use `yield return` as a tool to break the code into multiple individually executed chunks. 
 
-This is convenient, because we can use all the normal control flow statements (`if`, `for`, `while`, `foreach` etc) where otherwise 
-we would have to use a chain of callbacks. There's a notable limitation though, C# doesn't allow `yield` inside a `try {}` block, which does make sense.
+This is convenient, because we can use all the normal control flow statements (`if`, `for`, `while`, `foreach`, `using` etc) 
+where otherwise we would have to use a chain of callbacks. There's a notable limitation though, 
+C# doesn't allow `yield` inside a `try {}` block, which does make sense.
 
 Let's create [our own example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/CoroutineDemo.cs). We want `CoroutineA` and `CoroutineB` to execute cooperatively on the primary UI thread. In real life, they might be drawing animation effects or doing background spellchecking, syntax highlighting, etc. Here, to keep it simple, we'll just be using the console for some visual progress output:  
 
@@ -516,12 +517,13 @@ In my opinion, asynchronous coroutines can be an elegant solution to some niche 
 
 ### References
 
-- [Coroutines - Wikipedia](https://en.wikipedia.org/wiki/Coroutine)
-- [Coroutines - Unity](https://docs.unity3d.com/Manual/Coroutines.html)
-- [IResult and Coroutines - Caliburn.Micro](https://caliburnmicro.com/documentation/coroutines)
-- [Tutorial: Generate and consume async streams using C# 8.0 and .NET Core 3.0](https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/generate-consume-asynchronous-stream)
-- [Iterating with Async Enumerables in C# 8](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8)
-- [C# events as asynchronous streams with ReactiveX or Channels](https://dev.to/noseratio/c-events-as-asynchronous-streams-with-reactivex-or-channels-82k)
+- [*Coroutines* - Wikipedia](https://en.wikipedia.org/wiki/Coroutine)
+- [*Coroutines* - Unity](https://docs.unity3d.com/Manual/Coroutines.html)
+- [*IResult and Coroutines* - Caliburn.Micro](https://caliburnmicro.com/documentation/coroutines)
+- [*Async/await as a replacement of coroutines* - StackOverflow](https://stackoverflow.com/q/22852251/1768303)
+- [*Tutorial: Generate and consume async streams using C# 8.0 and .NET Core 3.0*](https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/generate-consume-asynchronous-stream)
+- [*Iterating with Async Enumerables in C# 8*](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8)
+- [*C# events as asynchronous streams with ReactiveX or Channels*](https://dev.to/noseratio/c-events-as-asynchronous-streams-with-reactivex-or-channels-82k)
 
 ### PS
 
