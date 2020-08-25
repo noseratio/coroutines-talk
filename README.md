@@ -1,7 +1,7 @@
 # Asynchronous coroutines with C# 8.0 and `IAsyncEnumerable`
 ## Introduction
 
-Coroutines are functions that yield and execute cooperatively, the concept that has been around for many decades. 
+[Coroutines](https://en.wikipedia.org/wiki/Coroutine) are functions that yield and execute cooperatively, the concept that has been around for many decades. 
 They are handy for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. 
 
 Internally, coroutines use some sort of programming language syntax sugar for generating state machines methods. 
@@ -14,9 +14,9 @@ Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
-**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio)🤓
+**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio) 🤓
 
-## Pull-based approach to coroutines (`IEnumerable`/`IEnumerator`)
+## Pull-based approach to coroutines with `IEnumerable`/`IEnumerator`
 
 This approach has been in use for over a decade, since `yield` was introduced in C# 2.0. Here is how a fade effect can be implemented as an `IEnumerator`-method in a Unity video game (borrowed from their [docs](https://docs.unity3d.com/Manual/Coroutines.html)). The use of `yield return` allows to "spread" the `for` loop across multiple frame generation iterations:
 
@@ -134,7 +134,7 @@ Ideally, we should be using `async`/`await` for awaiting the results of an actua
 
 Prior to C# 8, it wasn't possible to combine the two within the same method, but now we can do that.
 
-## Push-based approach to coroutines (`IAsyncEnumerable`/`IAsyncIEnumerator`)
+## Push-based approach to coroutines (or async pull) with `IAsyncEnumerable`/`IAsyncIEnumerator`
 
 In 2018, C# 8.0 introduced support for [asynchronous streams](https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/generate-consume-asynchronous-stream) with new language and runtime features like: 
  - [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.iasyncenumerable-1?view=dotnet-plat-ext-3.1)
@@ -149,7 +149,7 @@ In a few words, similar to how `IEnumerable` is used to produce a stream of data
 
 And so by analogy with `IEnumerable`, we can use `IAsyncEnumerable`-methods to implement coroutines with async calls inside.
 
-Before we get to a [real life example](##A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `return yield` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
+Before we get to a [real life example](###-A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `return yield` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
 
 ```C#
 private static async IAsyncEnumerable<int> CoroutineA(
@@ -193,7 +193,7 @@ private static async IAsyncEnumerable<int> CoroutineB(
 }
 ```
 
-Both coroutines now run concurrently (albeit still on the same UI thread), as we don't want to put (say) `CoroutineA` on hold only because `CoroutineB` is asynchronously waiting for `Task.Delay`. There's still a way to synchronize, which I'll show in the next example. 
+Both coroutines now run concurrently (still on the same UI thread). We don't want to put (say) `CoroutineA` on hold only because `CoroutineB` is asynchronously waiting for `Task.Delay`. There's still a way to synchronize, which I'll show in the next example. 
 
 Here's [the dispatcher code](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineDemo.cs#L67):
 
@@ -220,7 +220,17 @@ Running it:
 
 ![Running push-based coroutines](running-async-coroutines.png)
 
-Now, what if `CoroutineA` needs to synchronize upon the progress of `CoroutineB`? Below is [a made-up but simple example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemoMutual.cs), where `CoroutineA` starts progressing only when `CoroutineB` has already been half-way through its own flow:
+## Synchronizing the flow of asynchronous coroutines. 
+
+Now, what if `CoroutineA` needs to synchronize upon the progress of `CoroutineB`? Below is [a made-up but simple example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemoMutual.cs), where `CoroutineA` starts progressing only when `CoroutineB` has already been half-way through its own workflow. At that point, `CoroutineB` awaits for `CoroutineA` to catch up, then they both continue running to the end.
+
+We do that with a help of custom [`CoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), a helper class that wraps a .NET [`Channel`](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) to serve as an asynchronous queue for progress notifications from `IAsyncEnumerator.MoveNextAsync` of `CoroutineB`. 
+
+A `Channel` is like a pipe, we can push objects into one side of the pipe (with [`Channel.Writer.WriteAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1.writeasync?view=netcore-3.1)), and fetch them as an asynchronous stream from the other side (with [`Channel.Reader.ReadAllAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1.readallasync?view=netcore-3.1)). 
+
+![Coroutines flow](mutual-coroutines-flow.png)
+
+`CoroutineA`:
 
 ```C#
 private static async IAsyncEnumerable<int> CoroutineA(
@@ -229,12 +239,41 @@ private static async IAsyncEnumerable<int> CoroutineA(
 {
     var coroutineB = await coroutineProxy.AsAsyncEnumerable(token);
 
+    var inputIdler = new InputIdler();
+    var interval = new Interval();
+
     // await for coroutineB to advance by 40 steps
-    await foreach (var step in coroutineB)
+    await foreach (var stepB in coroutineB)
     {
-        if (step >= 40)
-            break;
+        if (stepB >= 40) break;
+        Console.SetCursorPosition(0, 0);
+        // display a throber
+        Console.Write($"{nameof(CoroutineA)}: {@"-\|/"[stepB % 4]}"); 
+        await interval.Delay(intervalMs, token);
     }
+
+    // now do our own thing
+    for (int i = 0; i < 80; i++)
+    {
+        await inputIdler.Yield(token);
+
+        Console.SetCursorPosition(0, 0);
+        Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}"); 
+
+        await interval.Delay(intervalMs, token);
+        yield return i;
+    }
+}
+```
+
+`CoroutineB`:
+
+```C#
+private static async IAsyncEnumerable<int> CoroutineB(
+    IAsyncCoroutineProxy<int> coroutineProxy,
+    [EnumeratorCancellation] CancellationToken token)
+{
+    var coroutineA = await coroutineProxy.AsAsyncEnumerable(token);
 
     var inputIdler = new InputIdler();
     var interval = new Interval();
@@ -243,18 +282,27 @@ private static async IAsyncEnumerable<int> CoroutineA(
     {
         await inputIdler.Yield(token);
 
-        Console.SetCursorPosition(0, 0);
-        Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}");
+        Console.SetCursorPosition(0, 1);
+        Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}");
 
-        await interval.Delay(25, token);
+        await interval.Delay(intervalMs, token);
         yield return i;
+
+        if (i == 40)
+        {
+            // await for CoroutineA to catch up
+            await foreach (var stepA in coroutineA)
+            {
+                if (stepA >= 40) break;
+                Console.SetCursorPosition(0, 1);
+                // display a throber
+                Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}{@"-\|/"[stepA % 4]}");
+                await interval.Delay(intervalMs, token);
+            }
+        }
     }
 }
 ```
-
-We do that with a help of custom [`CoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), a helper class that wraps a .NET [`Channel`](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) to serve as an asynchronous queue for progress notifications from `IAsyncEnumerator.MoveNextAsync` of `CoroutineB`. A `Channel` is like a pipe, we can push objects into one side of the pipe (with [`Channel.Writer.WriteAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1.writeasync?view=netcore-3.1)), and fetch them as an asynchronous stream from the other side (with [`Channel.Reader.ReadAllAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1.readallasync?view=netcore-3.1)). 
-
-[TODO: a diagram]
 
 As the [dispatcher code](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineProxy.cs#L34) asynchronously iterates through the output of `CoroutineB` (with `await foreach`), it relays the received items by writing them to `Channel.Writer`, and then `CoroutineA` reads them from `Channel.Reader`:
 
@@ -294,7 +342,7 @@ private static async ValueTask RunCoroutinesAsync(CancellationToken token)
     // start both coroutines
     await Task.WhenAll(
         proxyA.RunAsync(token => CoroutineA(proxyB, token), token),
-        proxyB.RunAsync(token => CoroutineB(token), token));
+        proxyB.RunAsync(token => CoroutineB(proxyA, token), token));
 }
 ```
 
@@ -472,6 +520,15 @@ In our previous examples, we only dealt with concurrent execution on the same th
 ### Conclusion
 
 In my opinion, asynchronous coroutines can be an elegant solution to some niche consumer/producer scenarios, especially when there is no clear role separation between producer and consumer. The same kind of problems can certainly be solved with mature and powerful frameworks like [Reactive Extensions](https://github.com/dotnet/reactive) or [Dataflow](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/dataflow-task-parallel-library). However, the learning curve to use [`IAsyncEnumerable`](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8) and [Channels](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) should be really low.
+
+### References
+
+- [Coroutines - Wikipedia](https://en.wikipedia.org/wiki/Coroutine)
+- [Coroutines - Unity](https://docs.unity3d.com/Manual/Coroutines.html)
+- [IResult and Coroutines - Caliburn.Micro](https://caliburnmicro.com/documentation/coroutines)
+- [Tutorial: Generate and consume async streams using C# 8.0 and .NET Core 3.0](https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/generate-consume-asynchronous-stream)
+- [Iterating with Async Enumerables in C# 8](https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8)
+- [C# events as asynchronous streams with ReactiveX or Channels](https://dev.to/noseratio/c-events-as-asynchronous-streams-with-reactivex-or-channels-82k)
 
 ### PS
 

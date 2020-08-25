@@ -126,12 +126,20 @@ namespace Coroutines
 
         public static void Main()
         {
-            var program = new Program();
-            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-            Application.ThreadException += (s, e) => program.HandleException(e.Exception);
-            Application.Run(program.CreateUI());
             Console.Clear();
+            Console.CursorVisible = false;
+            try
+            {
+                var program = new Program();
+                Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+                Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+                Application.ThreadException += (s, e) => program.HandleException(e.Exception);
+                Application.Run(program.CreateUI());
+            }
+            finally
+            {
+                Console.CursorVisible = true;
+            }
         }
     }
 }

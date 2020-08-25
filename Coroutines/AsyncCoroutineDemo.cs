@@ -82,12 +82,5 @@ namespace Coroutines
         }
 
         static readonly object _lock = new Object();
-
-        //await Task.Run(() =>
-        //{
-        //    lock (_lock)
-        //    {
-        //    }
-        //});
     }
 }
