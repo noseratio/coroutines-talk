@@ -460,7 +460,7 @@ private static async IAsyncEnumerable<(BackgroundEvents, object)> BackgroundCoro
         await KeyboardInput.FeedTextAsync(TEXT_TO_FEED, token);
     }
 
-    // notify the foreground coroutine that we've been fed some text
+    // notify the foreground coroutine that we've fed some text
     yield return (BackgroundEvents.TextSent, DBNull.Value);
 
     // await for the foreground coroutine to reply with the text
