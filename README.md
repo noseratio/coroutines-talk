@@ -1,10 +1,11 @@
 # Asynchronous coroutines with C# 8.0 and `IAsyncEnumerable`
 ## Introduction
 
-[Coroutines](https://en.wikipedia.org/wiki/Coroutine) are functions that yield and execute cooperatively, the concept that has been around for many decades. 
-They are handy for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. 
+Coroutines are functions that yield and execute cooperatively, the concept that has been around for many decades. 
+According to [Wikipedia](https://en.wikipedia.org/wiki/Coroutine), *coroutines are very similar to threads. However, coroutines are cooperatively multitasked, whereas threads are typically preemptively multitasked*.
 
-Internally, coroutines use some sort of programming language syntax sugar for generating state machines methods. 
+Coroutines are handy for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. Internally, they use some sort of programming language syntax sugar for generating state machines methods. 
+
 In the C# world, they have been popularized by [Unity game development platform](https://docs.unity3d.com/Manual/Coroutines.html), 
 and Unity uses [`IEnumerator`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerator?view=netcore-3.1)-style methods and `return yield` for that. 
 
