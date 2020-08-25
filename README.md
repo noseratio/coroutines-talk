@@ -224,7 +224,7 @@ Running it:
 
 Now, what if `CoroutineA` needs to synchronize upon the progress of `CoroutineB`? Below is [a made-up but simple example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemoMutual.cs), where `CoroutineA` starts progressing only when `CoroutineB` has already been half-way through its own workflow. At that point, `CoroutineB` awaits for `CoroutineA` to catch up, then they both continue running to the end.
 
-We do that with a help of custom [`CoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), a helper class that wraps a .NET [`Channel`](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) to serve as an asynchronous queue for progress notifications from `IAsyncEnumerator.MoveNextAsync` of `CoroutineB`. 
+We do that with a help of custom [`AsyncCoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), a helper class that wraps a .NET [`Channel`](https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/) to serve as an asynchronous queue for progress notifications from `IAsyncEnumerator.MoveNextAsync` of `CoroutineB`. 
 
 A `Channel` is like a pipe, we can push objects into one side of the pipe (with [`Channel.Writer.WriteAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1.writeasync?view=netcore-3.1)), and fetch them as an asynchronous stream from the other side (with [`Channel.Reader.ReadAllAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1.readallasync?view=netcore-3.1)). 
 
@@ -238,8 +238,6 @@ private static async IAsyncEnumerable<int> CoroutineA(
     [EnumeratorCancellation] CancellationToken token)
 {
     var coroutineB = await coroutineProxy.AsAsyncEnumerable(token);
-
-    var inputIdler = new InputIdler();
     var interval = new Interval();
 
     // await for coroutineB to advance by 40 steps
@@ -255,8 +253,6 @@ private static async IAsyncEnumerable<int> CoroutineA(
     // now do our own thing
     for (int i = 0; i < 80; i++)
     {
-        await inputIdler.Yield(token);
-
         Console.SetCursorPosition(0, 0);
         Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}"); 
 
@@ -274,14 +270,10 @@ private static async IAsyncEnumerable<int> CoroutineB(
     [EnumeratorCancellation] CancellationToken token)
 {
     var coroutineA = await coroutineProxy.AsAsyncEnumerable(token);
-
-    var inputIdler = new InputIdler();
     var interval = new Interval();
 
     for (int i = 0; i < 80; i++)
     {
-        await inputIdler.Yield(token);
-
         Console.SetCursorPosition(0, 1);
         Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}");
 
@@ -304,7 +296,7 @@ private static async IAsyncEnumerable<int> CoroutineB(
 }
 ```
 
-As the [dispatcher code](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineProxy.cs#L34) asynchronously iterates through the output of `CoroutineB` (with `await foreach`), it relays the received items by writing them to `Channel.Writer`, and then `CoroutineA` reads them from `Channel.Reader`:
+As the [dispatcher code of `AsyncCoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/c5d917a54a40e9059af69e23f51171e16e0d8469/Coroutines/AsyncCoroutineProxy.cs#L34) asynchronously iterates through the output of `CoroutineB` (with `await foreach`), it relays the received items by writing them to `Channel.Writer`, and then `CoroutineA` reads them from `Channel.Reader`:
 
 ```C#
 public async Task RunAsync(Func<CancellationToken, IAsyncEnumerable<T>> coroutine, CancellationToken token)

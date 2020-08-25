@@ -19,8 +19,6 @@ namespace Coroutines
             [EnumeratorCancellation] CancellationToken token)
         {
             var coroutineB = await coroutineProxy.AsAsyncEnumerable(token);
-
-            var inputIdler = new InputIdler();
             var interval = new Interval();
 
             // await for coroutineB to advance by 40 steps
@@ -36,8 +34,6 @@ namespace Coroutines
             // now do our own thing
             for (int i = 0; i < 80; i++)
             {
-                await inputIdler.Yield(token);
-
                 Console.SetCursorPosition(0, 0);
                 Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}"); 
 
@@ -54,14 +50,10 @@ namespace Coroutines
             [EnumeratorCancellation] CancellationToken token)
         {
             var coroutineA = await coroutineProxy.AsAsyncEnumerable(token);
-
-            var inputIdler = new InputIdler();
             var interval = new Interval();
 
             for (int i = 0; i < 80; i++)
             {
-                await inputIdler.Yield(token);
-
                 Console.SetCursorPosition(0, 1);
                 Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}");
 
