@@ -1,21 +1,21 @@
 # Asynchronous coroutines with C# 8.0 and `IAsyncEnumerable`
+
+This the source repro my article published on [DEV.TO](https://dev.to/noseratio/asynchronous-coroutines-with-c-8-0-and-iasyncenumerable-2e04).
+
 ## Introduction
+
+**TLDR, [skip to a real life example](#skipTo).**
 
 Coroutines are functions that yield and execute cooperatively, the concept that has been around for many decades. 
 According to [Wikipedia](https://en.wikipedia.org/wiki/Coroutine), *coroutines are very similar to threads. However, coroutines are cooperatively multitasked, whereas threads are typically preemptively multitasked*.
 
-Coroutines are handy for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. Internally, they use some sort of programming language syntax sugar for generating state machines methods. 
+Coroutines are useful for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. Internally, they use some sort of programming language syntax sugar for generating state machines methods. 
 
-In the C# world, they have been popularized by [Unity game development platform](https://docs.unity3d.com/Manual/Coroutines.html), 
-and Unity uses [`IEnumerator`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerator?view=netcore-3.1)-style methods and `return yield` for that. 
+In the C# world, they have been popularized by [Unity game development platform](https://docs.unity3d.com/Manual/Coroutines.html), and Unity uses [`IEnumerator`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerator?view=netcore-3.1)-style methods and `return yield` for that. 
 
-Prior to C# 8, it wasn't possible to combine `await` and `return yield` within the same method, 
-making it difficult to use asynchrony inside coroutines. 
-Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally, and we're going to explore this option here.
+Prior to C# 8, it wasn't possible to combine `await` and `return yield` within the same method, making it difficult to use asynchrony inside coroutines. Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally, and we're going to explore this option here.
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
-
-**In-Kind Appeal**: Your feedback would be greatly appreciated, positive or negative. Feel free to [leave a comment](https://github.com/noseratio/coroutines-talk/issues) or [drop me a DM on Twitter](https://twitter.com/noseratio).
 
 ## Pull-based approach to coroutines with `IEnumerable`/`IEnumerator`
 
@@ -39,9 +39,11 @@ In contrast, with coroutines it's about code rather than data, and we use `yield
 
 This is convenient, because we can use all the normal control flow statements (`if`, `for`, `while`, `foreach`, `using` etc) 
 where otherwise we would have to use a chain of callbacks. There's a notable limitation though, 
-C# doesn't allow `yield` inside a `try {}` block, which does make sense.
+C# doesn't allow `yield` inside a `try {}` block.
 
-Let's create [our own example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/CoroutineDemo.cs). We want `CoroutineA` and `CoroutineB` to execute cooperatively on the primary UI thread. In real life, they might be drawing animation effects or doing background spellchecking, syntax highlighting, etc. Here, to keep it simple, we'll just be using the console for some visual progress output:  
+Let's create [our own example](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/CoroutineDemo.cs). We want `CoroutineA` and `CoroutineB` to execute cooperatively on the primary UI thread. In real life, they might be drawing animation effects or doing background spellchecking, syntax highlighting or other specific `ViewModel`/UI updates.
+
+Here, to keep it simple, we'll just be using the console for some visual progress output:  
 
 ```C#
 private static IEnumerable<int> CoroutineA()
@@ -67,7 +69,7 @@ private static IEnumerable<int> CoroutineB()
 
 The execution flow can be illustrated by this diagram:
 
-![Coroutines flow](coroutines-flow.png)
+![Coroutines flow](https://github.com/noseratio/coroutines-talk/raw/main/coroutines-flow.png)
 
 To run these two coroutines cooperatively, we need a *dispatcher*, the code also known as a coroutine driver. Its purpose is to advance the execution flow of each coroutine to the next step, from one `yield return` to another. That can be done upon timer intervals, user input events, or even something like `IObservable`-subscriptions in ReactiveX workflows.  
 
@@ -113,7 +115,7 @@ private static async ValueTask RunCoroutinesAsync(CancellationToken token)
 
 Running it:
 
-![Running pull-based coroutines](running-coroutines.png)
+![Running pull-based coroutines](https://github.com/noseratio/coroutines-talk/raw/main/running-coroutines.png)
 
 Instead of using `IEnumerable`/`yield return`, we could've tried achieving the same with `async`/`await`:
 
@@ -130,7 +132,7 @@ private static async Task CoroutineA()
 }
 ```
 
-This however would have a somewhat different semantic. We'd only get notified about the completion of the whole method, not the intermediate steps (versus `yield return`). So we'd lose precise control over how the execution flow gets suspended and resumed at the points of `await`. It's possible to implement a custom `TaskScheduler`, `SynchronizationContext` or a [C# awaitable](https://stackoverflow.com/a/22854116) to control that, but that'd come with added code complexity and runtime overhead. 
+However, this would have a somewhat different semantic. We'd only be notified about the completion of the whole method, not the intermediate steps (versus `yield return`). So, we'd lose precise control over how the execution flow gets suspended and resumed at the points of `await`. It's possible to implement a custom `TaskScheduler`, `SynchronizationContext` or a [C# awaitable](https://stackoverflow.com/a/22854116) to control that, but that'd come with added code complexity and runtime overhead. 
 
 Ideally, we should be using `async`/`await` for awaiting the results of an actual asynchronous API, rather than for suspending the execution flow, and using `yield return` for the latter.
 
@@ -220,7 +222,7 @@ private static async ValueTask RunCoroutinesAsync<T>(
 
 Running it:
 
-![Running push-based coroutines](running-async-coroutines.png)
+![Running push-based coroutines](https://github.com/noseratio/coroutines-talk/raw/main/running-async-coroutines.png)
 
 ## Synchronizing the flow of asynchronous coroutines. 
 
@@ -230,7 +232,7 @@ We do that with a help of custom [`AsyncCoroutineProxy`](https://github.com/nose
 
 A `Channel` is like a pipe, we can push objects into one side of the pipe (with [`Channel.Writer.WriteAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelwriter-1.writeasync?view=netcore-3.1)), and fetch them as an asynchronous stream from the other side (with [`Channel.Reader.ReadAllAsync`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.channels.channelreader-1.readallasync?view=netcore-3.1)). 
 
-![Coroutines flow](mutual-coroutines-flow.png)
+![Coroutines flow](https://github.com/noseratio/coroutines-talk/raw/main/mutual-coroutines-flow.png)
 
 `CoroutineA`:
 
@@ -342,13 +344,15 @@ private static async ValueTask RunCoroutinesAsync(CancellationToken token)
 
 Running it:
 
-![Running push-based coroutines](running-async-mutual-coroutines.png)
+![Running push-based coroutines](https://github.com/noseratio/coroutines-talk/raw/main/running-async-mutual-coroutines.png)
+
+<a name="skipTo"></a>
 
 ### A real-life scenario
 
 Using [`CoroutineProxy`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineProxy.cs), `CoroutineA` and `CoroutineB` can operate as asynchronous producer/consumer to each other, and they can swap these roles. 
 
-That's actually how I use them for automated UI testing. I've recently put together a Windows desktop app called [`DevComrade`](https://github.com/postprintum/devcomrade), a small side project for copy-pasting productivity improvement and more. It uses [Win32 simulated input API](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput) to asynchronously feed unformatted text into the currently active window, character by character as though it was typed by a person. 
+That's actually how I use them for automated UI testing. I've recently put together a Windows desktop app called `DevComrade`, **[a small open-source side project](https://github.com/postprintum/devcomrade) for copy-pasting productivity improvement and more**. It uses [Win32 simulated input API](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput) to asynchronously feed unformatted text into the currently active window, character by character as though it was typed by a person. 
 
 I needed an automated test to simulate that. Below is what I've come up with (the full source [here](https://github.com/postprintum/devcomrade/blob/main/Tests/KeyboardInputTest.cs)).
 
@@ -528,4 +532,4 @@ In my opinion, asynchronous coroutines can be an elegant solution to some niche 
 ### PS
 
 One other useful thing I've learnt while working on this article was how to use the new [`IValueTaskSource`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.sources.ivaluetasksource-1?view=netcore-3.1) interface to implement a source of lightweight [`ValueTask`](https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/) objects. This can help to greatly reduce allocations while awaiting a `ValueTask` on hot asynchronous loops. For some examples, check the source code of [`SimpleValueTaskSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/SimpleValueTaskSource.cs), 
-[`InputIdler`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) and [`TimerSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/TimerSource.cs) in this repo.
+[`InputIdler`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) and [`TimerSource`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/TimerSource.cs).
