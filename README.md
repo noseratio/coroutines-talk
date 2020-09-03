@@ -10,9 +10,9 @@ Coroutines are functions that yield and execute cooperatively, the concept that 
 
 Coroutines are useful for script-like scenarios where the code execution flow can be suspended and resumed after each logical step. Internally, they use some sort of programming language syntax sugar for generating state machines methods. 
 
-In the C# world, they have been popularized by [Unity game development platform](https://docs.unity3d.com/Manual/Coroutines.html), and Unity uses [`IEnumerator`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerator?view=netcore-3.1)-style methods and `return yield` for that. 
+In the C# world, they have been popularized by [Unity game development platform](https://docs.unity3d.com/Manual/Coroutines.html), and Unity uses [`IEnumerator`](https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerator?view=netcore-3.1)-style methods and `yield return` for that. 
 
-Prior to C# 8, it wasn't possible to combine `await` and `return yield` within the same method, making it difficult to use asynchrony inside coroutines. Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally, and we're going to explore this option here.
+Prior to C# 8, it wasn't possible to combine `await` and `yield return` within the same method, making it difficult to use asynchrony inside coroutines. Now, with the compiler's support for `IAsyncEnumerable` it can be done naturally, and we're going to explore this option here.
 
 The execution environment for the code listed here is a Windows Forms .NET Core 3.1 app, but the same techniques can be used anywhere C# code runs. 
 
@@ -152,7 +152,7 @@ In a few words, similar to how `IEnumerable` is used to produce a stream of data
 
 And so by analogy with `IEnumerable`, we can use `IAsyncEnumerable`-methods to implement coroutines with async calls inside.
 
-Before we get to a [real life example](###-A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `return yield` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
+Before we get to a [real life example](###-A-real-life-scenario) of that, let's reproduce what we've done so far with `IEnumerable`-based `CoroutineA` and `CoroutineB`, but [using `IAsyncEnumerable` this time](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/AsyncCoroutineDemo.cs). We still want to run `yield return` continuations upon fixed timer intervals, but we also want to make sure there is no pending user input in the UI thread's message queue, before we proceed with any micro-task that runs on the UI thread. That's what [`inputIdler.Yield()`](https://github.com/noseratio/coroutines-talk/blob/main/Coroutines/InputIdler.cs) is for below:
 
 ```C#
 private static async IAsyncEnumerable<int> CoroutineA(
