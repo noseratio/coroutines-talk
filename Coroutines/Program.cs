@@ -117,15 +117,15 @@ namespace Coroutines
             menu.Items.Add(
                 "Close", null, (s, e) => form.Close());
 
-            CancellationTokenSource? _uiWorkCts = null; 
+            CancellationTokenSource? uiWorkCts = null; 
             menu.Items.Add(
                 "Show TickCount", null, async (s, e) => {
                     // not good: do some silly work on the UI thread in a hot loop
-                    _uiWorkCts?.Cancel();
-                    _uiWorkCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
-                    _uiWorkCts.CancelAfter(5000);
+                    uiWorkCts?.Cancel();
+                    uiWorkCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
+                    uiWorkCts.CancelAfter(5000);
                     var idler = new InputIdler();
-                    while (!_uiWorkCts.Token.IsCancellationRequested)
+                    while (!uiWorkCts.Token.IsCancellationRequested)
                     {
                         textBox.Text = $"TickCount: {Environment.TickCount}";
                         form.Refresh();
