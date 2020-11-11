@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace Coroutines
 {
     public static class AsyncCoroutineDemoMutual
     {
-        private const int intervalMs = 25;
+        private const int intervalMs = 50;
 
         private static async IAsyncEnumerable<int> CoroutineA(
             IAsyncCoroutineProxy<int> coroutineProxy,
@@ -27,15 +28,15 @@ namespace Coroutines
                 if (stepB >= 40) break;
                 Console.SetCursorPosition(0, 0);
                 // display a throber
-                Console.Write($"{nameof(CoroutineA)}: {@"-\|/"[stepB % 4]}"); 
+                Console.Write($"{nameof(CoroutineA)}: {@"-\|/"[stepB % 4]}");
                 await interval.Delay(intervalMs, token);
             }
 
-            // now do our own thing
+            // now do our own 80 steps 
             for (int i = 0; i < 80; i++)
             {
                 Console.SetCursorPosition(0, 0);
-                Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}"); 
+                Console.Write($"{nameof(CoroutineA)}: {new String('A', i)}");
 
                 await interval.Delay(intervalMs, token);
                 yield return i;
@@ -62,7 +63,9 @@ namespace Coroutines
 
                 if (i == 40)
                 {
-                    // await for CoroutineA to catch up
+                    // demo async Linq
+
+                    // await for 40 steps of CoroutineA to catch up
                     await foreach (var stepA in coroutineA)
                     {
                         if (stepA >= 40) break;

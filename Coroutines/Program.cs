@@ -86,12 +86,13 @@ namespace Coroutines
                 StartPosition = FormStartPosition.CenterScreen
             };
 
-            form.Controls.Add(new TextBox
+            var textBox = new TextBox
             {
                 Multiline = true,
                 AcceptsReturn = true,
                 Dock = DockStyle.Fill
-            });
+            };
+            form.Controls.Add(textBox);
 
             var menu = new MenuStrip { Dock = DockStyle.Top };
             var actionMenu = new ToolStripMenuItem("Coroutines");
@@ -116,6 +117,24 @@ namespace Coroutines
             menu.Items.Add(
                 "Close", null, (s, e) => form.Close());
 
+            CancellationTokenSource? _textCts = null; 
+            menu.Items.Add(
+                "Show TickCount", null, async (s, e) => {
+                    _textCts?.Cancel();
+                    _textCts = new CancellationTokenSource(5000);
+                    var idler = new InputIdler();
+                    while (!_textCts.Token.IsCancellationRequested)
+                    {
+                        textBox.Text = Environment.TickCount.ToString();
+                        form.Refresh();
+                        if (InputIdler.AnyInputMessage())
+                        {
+                            await idler.Yield(CancellationToken.None);
+                        }
+                    }
+                    textBox.Text = String.Empty;
+                });
+
             form.MainMenuStrip = menu;
             form.Controls.Add(menu);
             form.FormClosing += (s, e) => Stop();
@@ -126,6 +145,7 @@ namespace Coroutines
 
         public static void Main()
         {
+            Console.Title = Application.ProductName;
             Console.Clear();
             Console.CursorVisible = false;
             try

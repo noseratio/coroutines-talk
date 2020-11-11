@@ -56,7 +56,7 @@ namespace Coroutines
             var tcs = new TaskCompletionSource<bool>();
             using var rego = token.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: true);
 
-            using var timer = new System.Windows.Forms.Timer { Interval = 50 };
+            using var timer = new System.Windows.Forms.Timer { Interval = 25 };
             timer.Tick += (s, e) =>
             {
                 try
