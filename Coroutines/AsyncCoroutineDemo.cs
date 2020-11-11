@@ -5,9 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,28 +49,15 @@ namespace Coroutines
             }
         }
 
-        public static async ValueTask DemoAsync(CancellationToken token)
-        {
-            while (true)
-            {
-                token.ThrowIfCancellationRequested();
-                Console.Clear();
-                await RunCoroutinesAsync<int>(
-                    intervalMs: 50, 
-                    token, 
-                    CoroutineA, CoroutineB);
-            }
-        }
-
-        private static async ValueTask RunCoroutinesAsync<T>(
+        private static async Task DriveCoroutinesAsync<T>(
             int intervalMs,
             CancellationToken token,
             params Func<CancellationToken, IAsyncEnumerable<T>>[] coroutines)
         {
-            var tasks = coroutines.Select(async c => 
+            var tasks = coroutines.Select(async coroutine => 
             {
                 var interval = new Interval();
-                await foreach (var item in c(token).WithCancellation(token))
+                await foreach (var item in coroutine(token).WithCancellation(token))
                 {
                     await interval.Delay(intervalMs, token);
                 }
@@ -81,6 +66,17 @@ namespace Coroutines
             await Task.WhenAll(tasks); 
         }
 
-        static readonly object _lock = new Object();
+        public static async Task DemoAsync(CancellationToken token)
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                Console.Clear();
+                await DriveCoroutinesAsync<int>(
+                    intervalMs: 50,
+                    token,
+                    CoroutineA, CoroutineB);
+            }
+        }
     }
 }

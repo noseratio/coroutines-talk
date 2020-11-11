@@ -28,8 +28,8 @@ namespace Coroutines
 
         public async ValueTask Yield(CancellationToken token)
         {
-            // if there is any input in the queue, yield 
-            // and await for Application.Idle event
+            // if there is any input in the queue, 
+            // await for Application.Idle event
             if (AnyInputMessage())
             {
                 System.Windows.Forms.Application.Idle += OnIdle;

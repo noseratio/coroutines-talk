@@ -35,21 +35,11 @@ namespace Coroutines
             }
         }
 
-        public static async ValueTask DemoAsync(CancellationToken token)
-        {
-            while (true)
-            {
-                token.ThrowIfCancellationRequested();
-                Console.Clear();
-                await RunCoroutinesAsync(token);
-            }
-        }
-
-        private static async ValueTask RunCoroutinesAsync(CancellationToken token)
+        private static async Task DriveCoroutinesAsync(CancellationToken token)
         {
             // combine two IEnumerable sequences into one and get an IEnumerator for it
             using var combined = CoroutineCombinator<int>.Combine(
-                CoroutineA, 
+                CoroutineA,
                 CoroutineB)
                 .GetEnumerator();
 
@@ -77,6 +67,15 @@ namespace Coroutines
 
             timer.Start();
             await tcs.Task;
+        }
+        public static async Task DemoAsync(CancellationToken token)
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                Console.Clear();
+                await DriveCoroutinesAsync(token);
+            }
         }
     }
 }

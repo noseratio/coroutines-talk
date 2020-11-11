@@ -24,7 +24,7 @@ namespace Coroutines
             _cts = new CancellationTokenSource();
         }
 
-        private async void StartAsync(Func<CancellationToken, ValueTask> func)
+        private async void StartAsync(Func<CancellationToken, Task> func)
         {
             try
             {
@@ -117,17 +117,17 @@ namespace Coroutines
             menu.Items.Add(
                 "Close", null, (s, e) => form.Close());
 
-            CancellationTokenSource? _textCts = null; 
+            CancellationTokenSource? _uiWorkCts = null; 
             menu.Items.Add(
                 "Show TickCount", null, async (s, e) => {
-                    // note good: do some silly work on the UI thread in a hot loop
-                    _textCts?.Cancel();
-                    _textCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-                    _textCts.CancelAfter(5000);
+                    // not good: do some silly work on the UI thread in a hot loop
+                    _uiWorkCts?.Cancel();
+                    _uiWorkCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
+                    _uiWorkCts.CancelAfter(5000);
                     var idler = new InputIdler();
-                    while (!_textCts.Token.IsCancellationRequested)
+                    while (!_uiWorkCts.Token.IsCancellationRequested)
                     {
-                        textBox.Text = Environment.TickCount.ToString();
+                        textBox.Text = $"TickCount: {Environment.TickCount}";
                         form.Refresh();
                         if (InputIdler.AnyInputMessage())
                         {

@@ -78,17 +78,7 @@ namespace Coroutines
             }
         }
 
-        public static async ValueTask DemoAsync(CancellationToken token)
-        {
-            while (true)
-            {
-                token.ThrowIfCancellationRequested();
-                Console.Clear();
-                await RunCoroutinesAsync(token);
-            }
-        }
-
-        private static async ValueTask RunCoroutinesAsync(CancellationToken token)
+        private static async Task DriveCoroutinesAsync(CancellationToken token)
         {
             var proxyA = new AsyncCoroutineProxy<int>();
             var proxyB = new AsyncCoroutineProxy<int>();
@@ -97,6 +87,16 @@ namespace Coroutines
             await Task.WhenAll(
                 proxyA.RunAsync(token => CoroutineA(proxyB, token), token),
                 proxyB.RunAsync(token => CoroutineB(proxyA, token), token));
+        }
+
+        public static async Task DemoAsync(CancellationToken token)
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                Console.Clear();
+                await DriveCoroutinesAsync(token);
+            }
         }
     }
 }

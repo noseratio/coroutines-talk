@@ -14,7 +14,7 @@ namespace Coroutines
     /// </summary>
     public static partial class TaskExtensions
     {
-        public static async ValueTask ForEachAsync<T>(
+        public static async Task ForEachAsync<T>(
             this IAsyncEnumerable<T> @this, 
             Action<T> action, 
             CancellationToken token = default)
@@ -26,21 +26,9 @@ namespace Coroutines
             }
         }
 
-        public static async ValueTask ForEachAsync<T>(
+        public static async Task ForEachAsync<T>(
             this IAsyncEnumerable<T> @this,
             Func<T, Task> func,
-            CancellationToken token = default)
-        {
-            await using var enumerator = @this.GetAsyncEnumerator(token);
-            while (await enumerator.MoveNextAsync())
-            {
-                await func(enumerator.Current);
-            }
-        }
-
-        public static async ValueTask ForEachAsync<T>(
-            this IAsyncEnumerable<T> @this,
-            Func<T, ValueTask> func,
             CancellationToken token = default)
         {
             await using var enumerator = @this.GetAsyncEnumerator(token);
