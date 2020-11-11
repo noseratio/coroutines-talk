@@ -19,11 +19,11 @@ namespace Coroutines
             IAsyncCoroutineProxy<int> coroutineProxy,
             [EnumeratorCancellation] CancellationToken token)
         {
-            var coroutineB = await coroutineProxy.AsAsyncEnumerable(token);
+            var proxyB = await coroutineProxy.AsAsyncEnumerable(token);
             var interval = new Interval();
 
             // await for coroutineB to advance by 40 steps
-            await foreach (var stepB in coroutineB)
+            await foreach (var stepB in proxyB)
             {
                 if (stepB >= 40) break;
                 Console.SetCursorPosition(0, 0);
@@ -50,7 +50,7 @@ namespace Coroutines
             IAsyncCoroutineProxy<int> coroutineProxy,
             [EnumeratorCancellation] CancellationToken token)
         {
-            var coroutineA = await coroutineProxy.AsAsyncEnumerable(token);
+            var proxyA = await coroutineProxy.AsAsyncEnumerable(token);
             var interval = new Interval();
 
             for (int i = 0; i < 80; i++)
@@ -66,7 +66,7 @@ namespace Coroutines
                     // demo async Linq
 
                     // await for 40 steps of CoroutineA to catch up
-                    await foreach (var stepA in coroutineA)
+                    await foreach (var stepA in proxyA)
                     {
                         if (stepA >= 40) break;
                         Console.SetCursorPosition(0, 1);

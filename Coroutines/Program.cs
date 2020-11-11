@@ -120,8 +120,10 @@ namespace Coroutines
             CancellationTokenSource? _textCts = null; 
             menu.Items.Add(
                 "Show TickCount", null, async (s, e) => {
+                    // note good: do some silly work on the UI thread in a hot loop
                     _textCts?.Cancel();
-                    _textCts = new CancellationTokenSource(5000);
+                    _textCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                    _textCts.CancelAfter(5000);
                     var idler = new InputIdler();
                     while (!_textCts.Token.IsCancellationRequested)
                     {
@@ -129,6 +131,7 @@ namespace Coroutines
                         form.Refresh();
                         if (InputIdler.AnyInputMessage())
                         {
+                            // process messages
                             await idler.Yield(CancellationToken.None);
                         }
                     }
