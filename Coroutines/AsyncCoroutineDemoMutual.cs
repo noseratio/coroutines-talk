@@ -63,17 +63,19 @@ namespace Coroutines
 
                 if (i == 40)
                 {
-                    // demo async Linq
+                    await proxyA.Take(40).LastOrDefaultAsync();
+
+                    // TODO: demo async Linq!
 
                     // await for 40 steps of CoroutineA to catch up
-                    await foreach (var stepA in proxyA)
-                    {
-                        if (stepA >= 40) break;
-                        Console.SetCursorPosition(0, 1);
-                        // display a throber
-                        Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}{@"-\|/"[stepA % 4]}");
-                        await interval.Delay(intervalMs, token);
-                    }
+                    //await foreach (var stepA in proxyA)
+                    //{
+                    //    if (stepA >= 40) break;
+                    //    Console.SetCursorPosition(0, 1);
+                    //    // display a throber
+                    //    Console.Write($"{nameof(CoroutineB)}: {new String('B', i)}{@"-\|/"[stepA % 4]}");
+                    //    await interval.Delay(intervalMs, token);
+                    //}
                 }
             }
         }
