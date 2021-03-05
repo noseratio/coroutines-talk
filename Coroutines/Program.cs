@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -146,8 +147,13 @@ namespace Coroutines
         }
         #endregion
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool AllocConsole();
+
         public static void Main()
         {
+            AllocConsole();
             Console.Title = Application.ProductName;
             Console.Clear();
             Console.CursorVisible = false;
