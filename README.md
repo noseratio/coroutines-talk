@@ -2,7 +2,7 @@
 
 This is the source repro for my article originally published on [DEV.TO](https://dev.to/noseratio/asynchronous-coroutines-with-c-8-0-and-iasyncenumerable-2e04).
 
-**Updated:** It was an exciting opportunity and experience to speak on this topic at [.NET Conf 2010](https://www.dotnetconf.net). 
+**Updated:** It was an exciting opportunity and experience to speak on this topic at [.NET Conf 2020](https://www.dotnetconf.net). 
 
 My talk is now [available on YouTube](https://www.youtube.com/watch?v=pE6b2Bs3U9Q), and the slide decks are [available in this repro](Asynchronous%20Coroutines%20with%20C%23.pptx).
 
